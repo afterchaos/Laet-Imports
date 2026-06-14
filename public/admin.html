@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="LAET IMPORTS - Painel Administrativo">
+    <title>LAET IMPORTS - Painel Administrativo</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        .admin-page {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .admin-header {
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+            padding: 20px 0;
+            border-bottom: 2px solid var(--color-primary-dark);
+        }
+        
+        .admin-header .container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .admin-header .logo {
+            color: var(--color-white);
+        }
+        
+        .admin-header .logo-laet,
+        .admin-header .logo-imports {
+            color: var(--color-white);
+        }
+        
+        .admin-header .logo-imports {
+            opacity: 0.8;
+        }
+        
+        .admin-nav {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        
+        .admin-nav a {
+            color: rgba(255,255,255,0.9);
+            text-decoration: none;
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: var(--radius);
+            transition: var(--transition);
+        }
+        
+        .admin-nav a:hover {
+            background-color: rgba(255,255,255,0.1);
+        }
+        
+        .admin-login-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+        
+        .admin-login-box {
+            background: var(--color-surface-2);
+            border: 2px solid var(--color-primary);
+            border-radius: var(--radius-lg);
+            padding: 40px;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 20px 60px rgba(13, 71, 161, 0.25);
+        }
+        
+        .admin-login-box h1 {
+            text-align: center;
+            margin-bottom: 8px;
+            font-size: 24px;
+            color: var(--color-text);
+        }
+        
+        .admin-login-box p {
+            text-align: center;
+            color: var(--color-text-secondary);
+            margin-bottom: 32px;
+            font-size: 14px;
+        }
+        
+        .admin-login-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            box-shadow: 0 8px 24px rgba(13, 71, 161, 0.3);
+        }
+        
+        .admin-login-icon svg {
+            width: 40px;
+            height: 40px;
+            color: white;
+        }
+        
+        .admin-dashboard-container {
+            flex: 1;
+            padding: 24px;
+            background: var(--color-surface);
+        }
+        
+        .admin-dashboard-container .container {
+            max-width: 1400px;
+        }
+        
+        .admin-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 32px;
+        }
+        
+        .stat-card {
+            background: var(--color-surface-2);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            padding: 24px;
+            transition: var(--transition);
+        }
+        
+        .stat-card:hover {
+            border-color: var(--color-primary);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        }
+        
+        .stat-card h3 {
+            font-size: 32px;
+            color: var(--color-primary);
+            margin-bottom: 8px;
+        }
+        
+        .stat-card p {
+            color: var(--color-text-secondary);
+            font-size: 14px;
+        }
+        
+        .admin-panel {
+            background: var(--color-surface-2);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+        }
+        
+        .admin-user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: white;
+        }
+        
+        .admin-user-avatar {
+            width: 36px;
+            height: 36px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .admin-user-avatar svg {
+            width: 20px;
+            height: 20px;
+        }
+        
+        .admin-user-name {
+            font-weight: 600;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .back-to-site {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: rgba(255,255,255,0.9);
+            text-decoration: none;
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: var(--radius);
+            transition: var(--transition);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .back-to-site:hover {
+            background-color: rgba(255,255,255,0.1);
+            border-color: rgba(255,255,255,0.4);
+        }
+        
+        .back-to-site svg {
+            width: 18px;
+            height: 18px;
+        }
+        
+        /* Content Management Styles */
+        .content-sections {
+            padding: 24px;
+        }
+        
+        .content-section {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        
+        .content-section h4 {
+            color: var(--color-primary);
+            margin-bottom: 20px;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .feature-edit-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+        }
+
+        .form-text {
+            font-size: 12px;
+            color: rgba(255,255,255,0.7);
+            margin-top: 8px;
+        }
+
+        .product-image-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .product-image-preview img {
+            width: 72px;
+            height: 72px;
+            object-fit: cover;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.15);
+            background: rgba(255,255,255,0.05);
+        }
+        
+        .admin-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            padding: 16px 24px;
+            background: var(--color-surface);
+            border-top: 1px solid var(--color-border);
+        }
+    </style>
+</head>
+<body class="admin-page">
+    <!-- Wave Shock Background -->
+    <div class="wave-container">
+        <svg class="waves-svg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
+            <defs>
+                <filter id="glow">
+                    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                    <feMerge>
+                        <feMergeNode in="coloredBlur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                </filter>
+            </defs>
+            <circle class="wave-circle wave-circle-1" cx="600" cy="400" r="10"/>
+            <circle class="wave-circle wave-circle-2" cx="600" cy="400" r="10"/>
+            <circle class="wave-circle wave-circle-3" cx="600" cy="400" r="10"/>
+            <circle class="wave-circle wave-circle-4" cx="600" cy="400" r="10"/>
+            <circle class="wave-circle wave-circle-5" cx="600" cy="400" r="10"/>
+        </svg>
+        <div class="wave-glow wave-glow-1"></div>
+        <div class="wave-glow wave-glow-2"></div>
+        <div class="wave-glow wave-glow-3"></div>
+    </div>
+
+    <!-- Admin Header -->
+    <header class="admin-header">
+        <div class="container">
+            <a href="index.html" class="logo">
+                <span class="logo-laet">LAET</span>
+                <span class="logo-imports">IMPORTS</span>
+                <span style="margin-left: 12px; font-size: 14px; opacity: 0.8;">Admin</span>
+            </a>
+            
+            <div class="admin-nav" id="admin-nav">
+                <a href="index.html" class="back-to-site">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                    Voltar ao Site
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Login Section -->
+    <div class="admin-login-container" id="admin-login-section">
+        <div class="admin-login-box">
+            <div class="admin-login-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+            </div>
+            <h1>Painel Administrativo</h1>
+            <p>Entre com suas credenciais para acessar o painel de controle.</p>
+            
+            <form id="admin-login-form" class="admin-form">
+                <div class="form-group">
+                    <label for="admin-username">Usuario</label>
+                    <input type="text" id="admin-username" placeholder="Digite seu usuario" required>
+                </div>
+                <div class="form-group">
+                    <label for="admin-password">Senha</label>
+                    <input type="password" id="admin-password" placeholder="Digite sua senha" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full" style="margin-top: 8px;">
+                    Entrar no Painel
+                </button>
+            </form>
+            
+        </div>
+    </div>
+
+    <!-- Dashboard Section (hidden until login) -->
+    <div class="admin-dashboard-container hidden" id="admin-dashboard-section">
+        <div class="container">
+            <!-- Stats -->
+            <div class="admin-stats">
+                <div class="stat-card">
+                    <h3 id="stat-products">0</h3>
+                    <p>Produtos Cadastrados</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="stat-categories">0</h3>
+                    <p>Categorias Ativas</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="stat-users">0</h3>
+                    <p>Usuarios do Sistema</p>
+                </div>
+            </div>
+
+            <!-- Admin Panel -->
+            <div class="admin-panel">
+                <div class="admin-tabs">
+                    <button class="admin-tab active" data-tab="products-tab">Produtos</button>
+                    <button class="admin-tab" data-tab="categories-tab">Categorias</button>
+                    <button class="admin-tab" data-tab="content-tab">Conteúdo do Site</button>
+                    <button class="admin-tab" data-tab="users-tab" id="tab-users-btn">Usuarios</button>
+                </div>
+
+                <!-- Products Management Tab -->
+                <div class="admin-tab-content active" id="products-tab">
+                    <div class="admin-actions">
+                        <button class="btn btn-primary" id="add-product-btn">Novo Produto</button>
+                    </div>
+                    <div class="admin-table-wrapper">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nome</th>
+                                    <th>Categoria</th>
+                                    <th>Preco</th>
+                                    <th>Acoes</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-products-list">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Categories Management Tab -->
+                <div class="admin-tab-content" id="categories-tab">
+                    <div class="admin-actions">
+                        <button class="btn btn-primary" id="add-category-btn">Nova Categoria</button>
+                    </div>
+                    <div class="admin-table-wrapper">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nome</th>
+                                    <th>Acoes</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-categories-list">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Site Content Management Tab -->
+                <div class="admin-tab-content" id="content-tab">
+                    <div class="admin-actions">
+                        <button class="btn btn-secondary" id="reset-content-btn">Restaurar Padrao</button>
+                    </div>
+                    <div class="content-sections">
+                        <!-- Hero Section -->
+                        <div class="content-section">
+                            <h4>Seção Hero (Topo)</h4>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="edit-hero-badge">Badge</label>
+                                    <input type="text" id="edit-hero-badge" placeholder="Ex: Vape & Tech">
+                                </div>
+                                <div class="form-group">
+                                    <label for="edit-hero-title">Titulo Principal</label>
+                                    <input type="text" id="edit-hero-title" placeholder="Titulo da seção hero">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-hero-description">Descrição</label>
+                                <textarea id="edit-hero-description" rows="2" placeholder="Descrição da seção hero"></textarea>
+                            </div>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="edit-hero-btn-1">Texto Botão 1</label>
+                                    <input type="text" id="edit-hero-btn-1" placeholder="Ex: Ver Novidades">
+                                </div>
+                                <div class="form-group">
+                                    <label for="edit-hero-btn-2">Texto Botão 2</label>
+                                    <input type="text" id="edit-hero-btn-2" placeholder="Ex: Promoções">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Features Section -->
+                        <div class="content-section">
+                            <h4>Diferenciais (Features)</h4>
+                            <div class="feature-edit-grid">
+                                <div class="form-group">
+                                    <label for="edit-feature-1-title">Titulo 1</label>
+                                    <input type="text" id="edit-feature-1-title">
+                                </div>
+                                <div class="form-group">
+                                    <label for="edit-feature-1-desc">Descrição 1</label>
+                                    <input type="text" id="edit-feature-1-desc">
+                                </div>
+                                <div class="form-group">
+                                    <label for="edit-feature-2-title">Titulo 2</label>
+                                    <input type="text" id="edit-feature-2-title">
+                                </div>
+                                <div class="form-group">
+                                    <label for="edit-feature-2-desc">Descrição 2</label>
+                                    <input type="text" id="edit-feature-2-desc">
+                                </div>
+                                <div class="form-group">
+                                    <label for="edit-feature-3-title">Titulo 3</label>
+                                    <input type="text" id="edit-feature-3-title">
+                                </div>
+                                <div class="form-group">
+                                    <label for="edit-feature-3-desc">Descrição 3</label>
+                                    <input type="text" id="edit-feature-3-desc">
+                                </div>
+                                <div class="form-group">
+                                    <label for="edit-feature-4-title">Titulo 4</label>
+                                    <input type="text" id="edit-feature-4-title">
+                                </div>
+                                <div class="form-group">
+                                    <label for="edit-feature-4-desc">Descrição 4</label>
+                                    <input type="text" id="edit-feature-4-desc">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Products Section -->
+                        <div class="content-section">
+                            <h4>Seção de Produtos</h4>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="edit-products-title">Titulo</label>
+                                    <input type="text" id="edit-products-title">
+                                </div>
+                                <div class="form-group">
+                                    <label for="edit-products-desc">Descrição</label>
+                                    <input type="text" id="edit-products-desc">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Offers Section -->
+                        <div class="content-section">
+                            <h4>Seção de Ofertas</h4>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="edit-offer-badge">Badge</label>
+                                    <input type="text" id="edit-offer-badge">
+                                </div>
+                                <div class="form-group">
+                                    <label for="edit-offer-btn">Texto Botão</label>
+                                    <input type="text" id="edit-offer-btn">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-offer-title">Titulo</label>
+                                <input type="text" id="edit-offer-title">
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-offer-description">Descrição</label>
+                                <textarea id="edit-offer-description" rows="2"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Newsletter Section -->
+                        <div class="content-section">
+                            <h4>Newsletter</h4>
+                            <div class="form-group">
+                                <label for="edit-newsletter-title">Titulo</label>
+                                <input type="text" id="edit-newsletter-title">
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-newsletter-desc">Descrição</label>
+                                <textarea id="edit-newsletter-desc" rows="2"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Footer -->
+                        <div class="content-section">
+                            <h4>Rodapé</h4>
+                            <div class="form-group">
+                                <label for="edit-footer-description">Descrição</label>
+                                <textarea id="edit-footer-description" rows="2"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-footer-copyright">Copyright</label>
+                                <input type="text" id="edit-footer-copyright">
+                            </div>
+                        </div>
+
+                        <!-- Contato -->
+                        <div class="content-section">
+                            <h4>Contato (WhatsApp &amp; Instagram)</h4>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="edit-whatsapp">Número WhatsApp</label>
+                                    <input type="text" id="edit-whatsapp" placeholder="Ex: 5511999999999">
+                                    <p class="form-text">Apenas números com código do país. Ex: 5511999999999</p>
+                                </div>
+                                <div class="form-group">
+                                    <label for="edit-instagram">Link do Instagram</label>
+                                    <input type="url" id="edit-instagram" placeholder="Ex: https://instagram.com/laetimports">
+                                    <p class="form-text">URL completa do perfil no Instagram.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="admin-actions" style="margin-top: 24px;">
+                        <button class="btn btn-primary" id="save-content-btn">Salvar Alterações</button>
+                    </div>
+                </div>
+
+                <!-- Users Management Tab -->
+                <div class="admin-tab-content" id="users-tab">
+                    <div class="admin-actions">
+                        <button class="btn btn-primary" id="add-user-btn">Novo Usuario</button>
+                    </div>
+                    <div class="admin-table-wrapper">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Usuario</th>
+                                    <th>Cargo</th>
+                                    <th>Acoes</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-users-list">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Editor Modal -->
+    <div class="modal-overlay" id="user-editor-modal">
+        <div class="modal modal-small">
+            <div class="modal-header">
+                <h3 id="user-editor-title">Novo Usuario</h3>
+                <button class="modal-close" id="close-user-editor">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="user-form" class="admin-form">
+                    <input type="hidden" id="edit-user-id">
+                    <div class="form-group">
+                        <label for="user-fullname">Nome Completo</label>
+                        <input type="text" id="user-fullname" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="user-username">Usuario</label>
+                        <input type="text" id="user-username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="user-password">Senha</label>
+                        <input type="password" id="user-password" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="user-role">Cargo</label>
+                        <select id="user-role" required>
+                            <option value="editor">Editor (Produtos e Categorias)</option>
+                            <option value="admin">Admin (Tudo + Usuarios)</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">Salvar Usuario</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Product Editor Modal -->
+    <div class="modal-overlay" id="product-editor-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="product-editor-title">Editar Produto</h3>
+                <button class="modal-close" id="close-product-editor">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="product-form" class="admin-form">
+                    <input type="hidden" id="edit-product-id">
+                    <div class="form-group">
+                        <label for="prod-name">Nome do Produto</label>
+                        <input type="text" id="prod-name" required>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="prod-category">Categoria</label>
+                            <select id="prod-category" required>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="prod-icon">Icone</label>
+                            <select id="prod-icon" required>
+                                <option value="laptop">Laptop</option>
+                                <option value="monitor">Monitor</option>
+                                <option value="keyboard">Teclado</option>
+                                <option value="mouse">Mouse</option>
+                                <option value="gpu">Placa de Video</option>
+                                <option value="storage">Armazenamento</option>
+                                <option value="headset">Headset</option>
+                                <option value="memory">Memoria</option>
+                                <option value="webcam">Webcam</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="prod-price">Preco (R$)</label>
+                            <input type="number" step="0.01" id="prod-price" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="prod-old-price">Preco Antigo (opcional)</label>
+                            <input type="number" step="0.01" id="prod-old-price">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="prod-image">URL da Foto (deixe vazio para usar icone ou upload)</label>
+                        <input type="text" id="prod-image" placeholder="https://exemplo.com/foto.jpg">
+                    </div>
+                    <div class="form-group">
+                        <label for="prod-description">Descrição do Produto</label>
+                        <textarea id="prod-description" rows="4" placeholder="Descrição completa do produto"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="prod-images">Enviar fotos do produto</label>
+                        <input type="file" id="prod-images" accept="image/*" multiple>
+                        <p class="form-text">As imagens serão salvas no navegador como dados locais. Use upload ou URL.</p>
+                        <div class="product-image-preview" id="prod-image-preview"></div>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="prod-badge">Badge</label>
+                            <select id="prod-badge">
+                                <option value="">Nenhum</option>
+                                <option value="sale">Promocao</option>
+                                <option value="new">Novo</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="prod-badge-text">Texto da Badge</label>
+                            <input type="text" id="prod-badge-text" placeholder="Ex: -20%">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">Salvar Produto</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Editor Modal -->
+    <div class="modal-overlay" id="category-editor-modal">
+        <div class="modal modal-small">
+            <div class="modal-header">
+                <h3 id="category-editor-title">Nova Categoria</h3>
+                <button class="modal-close" id="close-category-editor">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="category-form" class="admin-form">
+                    <input type="hidden" id="edit-category-id">
+                    <div class="form-group">
+                        <label for="cat-id">ID da Categoria (ex: notebooks)</label>
+                        <input type="text" id="cat-id" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="cat-label">Nome da Categoria (ex: Notebooks)</label>
+                        <input type="text" id="cat-label" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">Salvar Categoria</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast">
+        <span id="toast-message">Mensagem</span>
+    </div>
+
+    <script src="api-client.js"></script>
+    <script src="admin_fixed.js"></script>
+
+    <script src="waves.js"></script>
+</body>
+</html>
+</content>
+<parameter name="taskNameActive">Creating admin.html
+
