@@ -175,7 +175,10 @@ async function initializeDatabase() {
             WHERE table_schema='public'
               AND table_name='laet_users'
               AND column_name='id'
-              AND COALESCE(column_default,'') NOT ILIKE '%identity%'
+              AND (
+                COALESCE(column_default,'') NOT ILIKE '%identity%'
+                OR COALESCE(is_identity,'NO') <> 'YES'
+              )
           ) THEN
             -- Remove a PK atual, se necessário
             BEGIN
