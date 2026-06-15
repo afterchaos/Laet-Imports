@@ -602,6 +602,15 @@ app.delete('/api/admin/users/:id', requireAdmin, async (req, res) => {
 
 // Content admin
 
+app.get('/api/admin/site-content', requireAdmin, async (req, res) => {
+  try {
+    const siteContent = await database.getSiteContent();
+    if (!siteContent) return res.status(404).json({ error: 'Missing content' });
+    return res.json({ siteContent });
+  } catch (e) {
+    return res.status(500).json({ error: 'Failed to load site content', details: e && e.message ? e.message : String(e) });
+  }
+});
 
 app.put('/api/admin/site-content', requireAdmin, async (req, res) => {
   try {
