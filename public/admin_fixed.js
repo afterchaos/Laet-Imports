@@ -91,11 +91,6 @@ const initialCategories = [
     { id: 'fones', label: 'Fones' }
 ];
 
-const initialUsers = [
-    { id: 1, username: 'admin', password: '123', role: 'admin', name: 'Administrador' },
-    { id: 2, username: 'editor', password: '123', role: 'editor', name: 'Editor de Produtos' }
-];
-
 // State (API)
 let products = [];
 let categories = [];
@@ -176,10 +171,6 @@ async function saveProducts() {
 }
 
 async function saveCategories() {
-    // not used anymore
-}
-
-async function saveUsers() {
     // not used anymore
 }
 
@@ -455,11 +446,11 @@ function renderAdminCategories() {
 // Render Admin Users
 function renderAdminUsers() {
     if (!adminUsersList) return;
-    adminUsersList.innerHTML = users.map(user => `
+    adminUsersList.innerHTML = (users || []).map(user => `
         <tr>
             <td>${user.name}</td>
             <td>${user.username}</td>
-            <td><span class="badge ${user.role}">${user.role.toUpperCase()}</span></td>
+            <td><span class="badge ${user.role}">${String(user.role || '').toUpperCase()}</span></td>
             <td>
                 <div class="admin-table-actions">
                     <button class="btn-icon" onclick="editUser(${user.id})" title="Editar">
@@ -668,60 +659,74 @@ addUserBtn.addEventListener('click', () => {
 
 window.editUser = function(id) {
     if (currentUser.role !== 'admin') return alert('Apenas administradores podem gerenciar usuarios.');
-    const user = users.find(u => u.id === id);
+    const user = (users || []).find(u => Number(u.id) === Number(id));
     if (!user) return;
     
     document.getElementById('user-editor-title').textContent = 'Editar Usuario';
     document.getElementById('edit-user-id').value = user.id;
     document.getElementById('user-fullname').value = user.name;
     document.getElementById('user-username').value = user.username;
-    document.getElementById('user-password').value = user.password;
+
+    // Backend (GET /api/admin/users) NÃO envia password por segurança.
+    // Mantemos campo vazio e o usuário precisa informar uma nova senha.
+    document.getElementById('user-password').value = '';
+
     document.getElementById('user-role').value = user.role;
     
     userEditorModal.classList.add('active');
 };
 
-window.deleteUser = function(id) {
+window.deleteUser = async function(id) {
     if (currentUser.role !== 'admin') return alert('Apenas administradores podem gerenciar usuarios.');
     if (id === 1) return alert('O administrador principal nao pode ser excluido.');
-    
-    if (confirm('Tem certeza que deseja excluir este usuario?')) {
-        users = users.filter(u => u.id !== id);
-        saveUsers();
+
+    if (!confirm('Tem certeza que deseja excluir este usuario?')) return;
+
+    try {
+        await apiAdminDel(`/api/admin/users/${id}`);
+        await loadAdminData();
         renderAdminUsers();
         updateStats();
         showToast('Usuario excluido!');
+    } catch (err) {
+        console.error(err);
+        alert('Erro ao excluir usuario: ' + (err && err.message ? err.message : String(err)));
     }
 };
 
-userForm.addEventListener('submit', (e) => {
+userForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+
     const id = document.getElementById('edit-user-id').value;
-    const username = document.getElementById('user-username').value;
-    
-    const existing = users.find(u => u.username === username && u.id !== parseInt(id));
-    if (existing) return alert('Este nome de usuario ja esta em uso!');
+    const username = document.getElementById('user-username').value.trim();
+    const name = document.getElementById('user-fullname').value.trim();
+    const password = document.getElementById('user-password').value;
+    const role = document.getElementById('user-role').value;
 
-    const userData = {
-        id: id ? parseInt(id) : Date.now(),
-        name: document.getElementById('user-fullname').value,
-        username: username,
-        password: document.getElementById('user-password').value,
-        role: document.getElementById('user-role').value
-    };
+    // Validação via UI (opcional). A persistência real vem do Postgres (API).
+    if (!username) return alert('Informe um usuario.');
+    if (!name) return alert('Informe o nome.');
+    if (!password) return alert('Informe a senha.');
 
-    if (id) {
-        const index = users.findIndex(u => u.id === parseInt(id));
-        users[index] = userData;
-    } else {
-        users.push(userData);
+    const payload = { name, username, password, role };
+
+    try {
+        if (id) {
+            await apiAdminPut(`/api/admin/users/${id}`, payload);
+        } else {
+            await apiAdminPost('/api/admin/users', payload);
+        }
+
+        await loadAdminData();
+        renderAdminUsers();
+        updateStats();
+
+        userEditorModal.classList.remove('active');
+        showToast('Usuario salvo com sucesso!');
+    } catch (err) {
+        console.error(err);
+        alert('Erro ao salvar usuario: ' + (err && err.message ? err.message : String(err)));
     }
-
-    saveUsers();
-    renderAdminUsers();
-    updateStats();
-    userEditorModal.classList.remove('active');
-    showToast('Usuario salvo com sucesso!');
 });
 
 closeUserEditor.addEventListener('click', () => {
