@@ -208,7 +208,7 @@ async function initializeDatabase() {
             -- Ajusta a coluna para IDENTITY (pode já estar como identity em alguns bancos)
             BEGIN
               EXECUTE 'ALTER TABLE public.laet_users ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY';
-            EXCEPTION WHEN duplicate_object OR invalid_parameter_value OR feature_not_supported OR others THEN
+            EXCEPTION WHEN duplicate_object OR invalid_parameter_value OR feature_not_supported OR invalid_table_definition OR others THEN
               -- Se já era identity ou não suportar a alteração, ignora
               NULL;
             END;
@@ -681,6 +681,3 @@ module.exports = {
   _init: initializeDatabase,
   _getMode: () => process.env.DATABASE_MODE || 'postgres',
 };
-
-
-
