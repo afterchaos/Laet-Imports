@@ -703,12 +703,22 @@ userForm.addEventListener('submit', async (e) => {
     const password = document.getElementById('user-password').value;
     const role = document.getElementById('user-role').value;
 
-    // Validação via UI (opcional). A persistência real vem do Postgres (API).
+    // Validação via UI.
+    // IMPORTANTE: o backend exige password na criação (NOT NULL na laet_users).
     if (!username) return alert('Informe um usuario.');
     if (!name) return alert('Informe o nome.');
-    if (!password) return alert('Informe a senha.');
+    if (!password) {
+        // Pode ser update sem querer trocar a senha; nesse caso mandamos undefined e o backend não altera.
+        // Mas para CREATE (id vazio), password é obrigatório.
+        if (!id) return alert('Informe a senha.');
+    }
 
-    const payload = { name, username, password, role };
+    const payload = {
+        name,
+        username,
+        role,
+        ...(password ? { password } : {}),
+    };
 
     try {
         if (id) {
