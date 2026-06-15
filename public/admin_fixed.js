@@ -474,11 +474,14 @@ function renderAdminUsers() {
 }
 
 // Product CRUD
+let editingProductImages = [];
+
 addProductBtn.addEventListener('click', () => {
     document.getElementById('product-editor-title').textContent = 'Novo Produto';
     productForm.reset();
     if (prodImagesInput) prodImagesInput.value = '';
     document.getElementById('prod-description').value = '';
+    editingProductImages = [];
     updateProductPreview([]);
     document.getElementById('edit-product-id').value = '';
     productEditorModal.classList.add('active');
@@ -500,8 +503,8 @@ window.editProduct = function(id) {
     document.getElementById('prod-badge').value = product.badge || '';
     document.getElementById('prod-badge-text').value = product.badgeText || '';
     if (prodImagesInput) prodImagesInput.value = '';
-    const previewUrls = product.imageUrls?.length ? product.imageUrls : (product.imageUrl ? [product.imageUrl] : []);
-    updateProductPreview(previewUrls);
+    editingProductImages = Array.isArray(product.imageUrls) ? [...product.imageUrls] : (product.imageUrl ? [product.imageUrl] : []);
+    updateProductPreview(editingProductImages);
     
     productEditorModal.classList.add('active');
 };
@@ -527,6 +530,13 @@ productForm.addEventListener('submit', async (e) => {
     const files = prodImagesInput ? prodImagesInput.files : null;
 
     try {
+        // Monta a lista de imagens: mantém as existentes (em edição) e adiciona
+        // a URL informada manualmente, se houver e ainda não estiver na lista.
+        let imageUrls = [...editingProductImages];
+        if (imageUrlField && !imageUrls.includes(imageUrlField)) {
+            imageUrls = [imageUrlField, ...imageUrls];
+        }
+
         // Save product fields first
         const payload = {
             id: id ? parseInt(id, 10) : Date.now(),
@@ -540,23 +550,19 @@ productForm.addEventListener('submit', async (e) => {
             badge: document.getElementById('prod-badge').value,
             badgeText: document.getElementById('prod-badge-text').value,
             installment: price > 100 ? `${Math.min(12, Math.floor(price / 50))}x de ${formatCurrency(price / Math.min(12, Math.floor(price / 50)))} sem juros` : '',
+            imageUrls,
         };
 
         if (id) {
             await apiAdminPut(`/api/admin/products/${id}`, payload);
         } else {
-            const createRes = await apiAdminPost('/api/admin/products', payload);
-            // backend returns id, but payload already has it
+            await apiAdminPost('/api/admin/products', payload);
         }
 
-        // Save images (files) if present
+        // Save uploaded image files (if present) - they are appended to imageUrls no servidor
         if (files && files.length > 0) {
             const productIdToUpload = id ? parseInt(id, 10) : payload.id;
             await apiAdminUploadImages(productIdToUpload, files);
-        } else if (imageUrlField) {
-            // If only URL was provided, we still allow it by uploading a single image URL as product description.
-            // Current backend supports only filesystem upload for images; URL mode will be treated as no file.
-            // Keep product.imageUrl empty to avoid broken UI.
         }
 
         await loadAdminData();
@@ -564,11 +570,12 @@ productForm.addEventListener('submit', async (e) => {
         updateStats();
 
         if (prodImagesInput) prodImagesInput.value = '';
+        editingProductImages = [];
         updateProductPreview([]);
         productEditorModal.classList.remove('active');
         showToast('Produto salvo com sucesso!');
     } catch (err) {
-        alert('Erro ao salvar produto');
+        alert('Erro ao salvar produto: ' + (err && err.message ? err.message : String(err)));
         console.error(err);
     }
 });

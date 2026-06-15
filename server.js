@@ -327,7 +327,8 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
-app.post('/api/admin/products', requireAdmin, async (req, res) => {
+app.post('/api/admin/products', requireAdmin, async (req, res, next) => {
+  try {
   const b = req.body || {};
 
   // previne admins legados (token fixo) de executar sem sessão local quando DATABASE_MODE=local
@@ -347,6 +348,11 @@ app.post('/api/admin/products', requireAdmin, async (req, res) => {
 
   const products = await database.getProducts();
   const categoryLabel = String(b.categoryLabel || '');
+  const existingForId = products.find(p => Number(p.id) === Number(id));
+
+  const incomingImageUrls = Array.isArray(b.imageUrls)
+    ? b.imageUrls.map(u => String(u || '').trim()).filter(Boolean)
+    : null;
 
   const next = {
     id: Number(id),
@@ -359,17 +365,21 @@ app.post('/api/admin/products', requireAdmin, async (req, res) => {
     badge: badgeInfo.badge,
     badgeText: badgeInfo.badgeText,
     icon: b.icon || '',
-    imageUrls: Array.isArray((products.find(p => Number(p.id) === Number(id)) || {}).imageUrls)
-      ? (products.find(p => Number(p.id) === Number(id)) || {}).imageUrls
-      : [],
+    imageUrls: incomingImageUrls !== null
+      ? incomingImageUrls
+      : (Array.isArray((existingForId || {}).imageUrls) ? existingForId.imageUrls : []),
     description: b.description || '',
   };
 
   await database.saveProducts([...products.filter(p => Number(p.id) !== Number(id)), next]);
   res.json({ ok: true, id });
+  } catch (e) {
+    next(e);
+  }
 });
 
-app.put('/api/admin/products/:id', requireAdmin, async (req, res) => {
+app.put('/api/admin/products/:id', requireAdmin, async (req, res, next) => {
+  try {
   const id = Number(req.params.id);
   const b = req.body || {};
   const badgeInfo = normalizeBadge(b.badge, b.badgeText);
@@ -378,7 +388,14 @@ app.put('/api/admin/products/:id', requireAdmin, async (req, res) => {
 
   const products = await database.getProducts();
   const existing = products.find(p => Number(p.id) === id);
-  const imageUrls = existing && Array.isArray(existing.imageUrls) ? existing.imageUrls : [];
+
+  const incomingImageUrls = Array.isArray(b.imageUrls)
+    ? b.imageUrls.map(u => String(u || '').trim()).filter(Boolean)
+    : null;
+
+  const imageUrls = incomingImageUrls !== null
+    ? incomingImageUrls
+    : (existing && Array.isArray(existing.imageUrls) ? existing.imageUrls : []);
 
   const next = {
     id,
@@ -397,6 +414,9 @@ app.put('/api/admin/products/:id', requireAdmin, async (req, res) => {
 
   await database.saveProducts([...products.filter(p => Number(p.id) !== id), next]);
   res.json({ ok: true });
+  } catch (e) {
+    next(e);
+  }
 });
 
 app.delete('/api/admin/products/:id', requireAdmin, async (req, res) => {
@@ -408,13 +428,16 @@ app.delete('/api/admin/products/:id', requireAdmin, async (req, res) => {
   res.json({ ok: true });
 });
 
-app.post('/api/admin/products/:id/images', requireAdmin, upload.array('images', 20), async (req, res) => {
+app.post('/api/admin/products/:id/images', requireAdmin, upload.array('images', 20), async (req, res, next) => {
+  try {
   const productId = Number(req.params.id);
   const files = req.files || [];
 
   const products = await database.getProducts();
   const existing = products.find(p => Number(p.id) === productId);
-  const imageUrls = files.map(f => (process.env.PUBLIC_UPLOAD_DIR || '/uploads') + '/' + path.basename(f.path));
+  const existingUrls = existing && Array.isArray(existing.imageUrls) ? existing.imageUrls : [];
+  const newUrls = files.map(f => (process.env.PUBLIC_UPLOAD_DIR || '/uploads') + '/' + path.basename(f.path));
+  const imageUrls = [...existingUrls, ...newUrls];
 
   const next = {
     ...(existing || { id: productId }),
@@ -423,7 +446,10 @@ app.post('/api/admin/products/:id/images', requireAdmin, upload.array('images', 
   };
 
   await database.saveProducts([...products.filter(p => Number(p.id) !== productId), next]);
-  res.json({ ok: true, count: files.length });
+  res.json({ ok: true, count: files.length, imageUrls });
+  } catch (e) {
+    next(e);
+  }
 });
 
 
@@ -686,6 +712,18 @@ app.get(['/admin', '/admin/'], (req, res) => {
 
 app.get('/product', (req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, 'product.html'));
+});
+
+// Tratamento de erros (multer, JSON inválido, falhas de banco, etc.)
+// Mantido por último, sempre retorna JSON.
+app.use((err, req, res, next) => {
+  console.error('[ERROR]', err);
+  if (res.headersSent) return next(err);
+  const status = err && err.status ? err.status : 500;
+  res.status(status).json({
+    error: 'Internal error',
+    details: err && err.message ? err.message : String(err),
+  });
 });
 
 

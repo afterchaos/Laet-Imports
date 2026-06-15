@@ -318,8 +318,13 @@ async function initializeDatabase() {
 function ensureImgUrlToPath(url) {
   // O projeto original armazena image_path como caminho do arquivo no FS.
   // A API envia a URL como /uploads/.../arquivo. Então persistimos o caminho (com base no PUBLIC upload dir).
-  const PUBLIC_DIR = process.env.PUBLIC_UPLOAD_DIR || '/uploads';
   if (typeof url !== 'string') return '';
+
+  // URLs externas (ex: https://exemplo.com/foto.jpg) são armazenadas como estão,
+  // sem tentar converter para caminho de arquivo local.
+  if (/^https?:\/\//i.test(url)) return url;
+
+  const PUBLIC_DIR = process.env.PUBLIC_UPLOAD_DIR || '/uploads';
   const cleaned = url.startsWith(PUBLIC_DIR) ? url.slice(PUBLIC_DIR.length) : url;
   const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
   // cleaned começa com /products/... se url era /uploads/products/...
@@ -352,10 +357,16 @@ async function getProducts() {
     const pid = Number(row.product_id);
     if (!imagesMap.has(pid)) imagesMap.set(pid, []);
 
-    const base = path.basename(row.image_path);
-    const rel = row.image_path.replace(new RegExp('^.*?\\' + base + '$'), '');
-    // Melhor: monta URL a partir do caminho real.
-    const url = PUBLIC_UPLOAD_DIR + '/' + path.relative(process.env.UPLOAD_DIR || path.join(__dirname, 'uploads'), row.image_path).replace(/\\/g, '/');
+    let url;
+    if (/^https?:\/\//i.test(row.image_path)) {
+      // URL externa salva diretamente.
+      url = row.image_path;
+    } else {
+      const base = path.basename(row.image_path);
+      const rel = row.image_path.replace(new RegExp('^.*?\\' + base + '$'), '');
+      // Melhor: monta URL a partir do caminho real.
+      url = PUBLIC_UPLOAD_DIR + '/' + path.relative(process.env.UPLOAD_DIR || path.join(__dirname, 'uploads'), row.image_path).replace(/\\/g, '/');
+    }
     imagesMap.get(pid).push(url);
   }
 

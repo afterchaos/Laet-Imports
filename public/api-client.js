@@ -5,7 +5,12 @@
 const API_BASE = window.API_BASE || '';
 
 function _json(res) {
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  if (!res.ok) {
+    return res.json().catch(() => null).then(body => {
+      const detail = body && (body.error || body.details) ? `: ${body.error || ''} ${body.details || ''}`.trim() : '';
+      throw new Error(`HTTP ${res.status}${detail}`);
+    });
+  }
   return res.json();
 }
 
