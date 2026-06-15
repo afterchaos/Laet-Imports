@@ -40,9 +40,10 @@ const database = require('./database');
     await database.initializeDatabase();
     console.log('[STARTUP] Database inicializada.');
   } catch (e) {
-    console.error('[STARTUP] Falha ao inicializar database:', e && e.message ? e.message : String(e));
+    console.error('[STARTUP] Falha ao inicializar database:', e && e.stack ? e.stack : (e && e.message ? e.message : String(e)));
   }
 })();
+
 
 // Health
 app.get('/health', async (req, res) => {
@@ -252,10 +253,15 @@ app.get('/api/categories', async (req, res) => {
 });
 
 app.get('/api/site-content', async (req, res) => {
-  const siteContent = await database.getSiteContent();
-  if (!siteContent) return res.status(404).json({ error: 'Missing content' });
-  res.json({ siteContent });
+  try {
+    const siteContent = await database.getSiteContent();
+    if (!siteContent) return res.status(404).json({ error: 'Missing content' });
+    return res.json({ siteContent });
+  } catch (e) {
+    return res.status(500).json({ error: 'Failed to load site content', details: e && e.message ? e.message : String(e) });
+  }
 });
+
 
 app.get('/api/contact', async (req, res) => {
   const contact = await database.getContact();
@@ -548,47 +554,53 @@ app.delete('/api/admin/users/:id', requireAdmin, async (req, res) => {
 
 
 app.put('/api/admin/site-content', requireAdmin, async (req, res) => {
-  const b = req.body || {};
-
-  await database.saveSiteContent({
-    heroBadge: b.heroBadge || '',
-    heroTitle: b.heroTitle || '',
-    heroDescription: b.heroDescription || '',
-    heroBtn1: b.heroBtn1 || '',
-    heroBtn2: b.heroBtn2 || '',
-    feature1Title: b.feature1Title || '',
-    feature1Desc: b.feature1Desc || '',
-    feature2Title: b.feature2Title || '',
-    feature2Desc: b.feature2Desc || '',
-    feature3Title: b.feature3Title || '',
-    feature3Desc: b.feature3Desc || '',
-    feature4Title: b.feature4Title || '',
-    feature4Desc: b.feature4Desc || '',
-    productsSectionTitle: b.productsSectionTitle || '',
-    productsSectionDesc: b.productsSectionDesc || '',
-    offerBadge: b.offerBadge || '',
-    offerTitle: b.offerTitle || '',
-    offerDescription: b.offerDescription || '',
-    offerBtn: b.offerBtn || '',
-    newsletterTitle: b.newsletterTitle || '',
-    newsletterDesc: b.newsletterDesc || '',
-    footerDescription: b.footerDescription || '',
-    footerCopyright: b.footerCopyright || '',
-  });
-
-  res.json({ ok: true });
+  try {
+    const b = req.body || {};
+    await database.saveSiteContent({
+      heroBadge: b.heroBadge || '',
+      heroTitle: b.heroTitle || '',
+      heroDescription: b.heroDescription || '',
+      heroBtn1: b.heroBtn1 || '',
+      heroBtn2: b.heroBtn2 || '',
+      feature1Title: b.feature1Title || '',
+      feature1Desc: b.feature1Desc || '',
+      feature2Title: b.feature2Title || '',
+      feature2Desc: b.feature2Desc || '',
+      feature3Title: b.feature3Title || '',
+      feature3Desc: b.feature3Desc || '',
+      feature4Title: b.feature4Title || '',
+      feature4Desc: b.feature4Desc || '',
+      productsSectionTitle: b.productsSectionTitle || '',
+      productsSectionDesc: b.productsSectionDesc || '',
+      offerBadge: b.offerBadge || '',
+      offerTitle: b.offerTitle || '',
+      offerDescription: b.offerDescription || '',
+      offerBtn: b.offerBtn || '',
+      newsletterTitle: b.newsletterTitle || '',
+      newsletterDesc: b.newsletterDesc || '',
+      footerDescription: b.footerDescription || '',
+      footerCopyright: b.footerCopyright || '',
+    });
+    return res.json({ ok: true });
+  } catch (e) {
+    return res.status(500).json({ error: 'Failed to save site content', details: e && e.stack ? e.stack : (e && e.message ? e.message : String(e)) });
+  }
 });
+
 
 app.put('/api/admin/contact', requireAdmin, async (req, res) => {
-  const b = req.body || {};
-
-  await database.saveContact({
-    whatsapp: String(b.whatsapp || ''),
-    instagram: String(b.instagram || ''),
-  });
-
-  res.json({ ok: true });
+  try {
+    const b = req.body || {};
+    await database.saveContact({
+      whatsapp: String(b.whatsapp || ''),
+      instagram: String(b.instagram || ''),
+    });
+    return res.json({ ok: true });
+  } catch (e) {
+    return res.status(500).json({ error: 'Failed to save contact', details: e && e.stack ? e.stack : (e && e.message ? e.message : String(e)) });
+  }
 });
+
 
 
 // Serve frontend (full-stack)

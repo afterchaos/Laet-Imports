@@ -4,7 +4,7 @@
 // Uso:
 //   node migrate-json-to-postgres.js
 //
-// Requer as variáveis:
+// Requer as variáveis
 //   PGHOST, PGPORT, PGUSER, PGPASSWORD, PGDATABASE
 
 const fs = require('fs');

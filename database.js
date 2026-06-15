@@ -620,6 +620,8 @@ module.exports = {
 
   // compatibilidade (server.js usa _init/_getMode no /health e requireAdmin)
   _init: initializeDatabase,
-  _getMode: () => 'postgres',
+  _getMode: () => process.env.DATABASE_MODE || 'postgres',
 };
+
+
 

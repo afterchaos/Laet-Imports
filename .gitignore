@@ -1,0 +1,36 @@
+# Node
+node_modules/
+
+# dotenv / env
+.env
+.env.*
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# editor
+.vscode/
+.idea/
+
+# build / coverage
+dist/
+build/
+coverage/
+nyc_output/
+
+# runtime data
+uploads/
+
+# misc
+*.swp
+*.swo
+*.tmp
+
