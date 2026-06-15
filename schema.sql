@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS laet_categories (
 );
 
 CREATE TABLE IF NOT EXISTS laet_products (
-  id                 INTEGER PRIMARY KEY,
+  id                 BIGINT PRIMARY KEY,
   name               TEXT NOT NULL DEFAULT '',
   category          TEXT NOT NULL DEFAULT 'todos',
   category_label    TEXT NOT NULL DEFAULT '',
@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS laet_products (
 
 CREATE TABLE IF NOT EXISTS laet_product_images (
   id           BIGSERIAL PRIMARY KEY,
-  product_id  INTEGER NOT NULL,
+  product_id  BIGINT NOT NULL,
   image_path  TEXT NOT NULL,
   image_order INTEGER NOT NULL DEFAULT 0,
   CONSTRAINT fk_product_images_product

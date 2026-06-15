@@ -79,7 +79,7 @@ async function initializeDatabase() {
       );
 
       CREATE TABLE IF NOT EXISTS laet_products (
-        id                 INTEGER PRIMARY KEY,
+        id                 BIGINT PRIMARY KEY,
         name               TEXT NOT NULL DEFAULT '',
         category          TEXT NOT NULL DEFAULT 'todos',
         category_label    TEXT NOT NULL DEFAULT '',
@@ -99,7 +99,7 @@ async function initializeDatabase() {
 
       CREATE TABLE IF NOT EXISTS laet_product_images (
         id           BIGSERIAL PRIMARY KEY,
-        product_id  INTEGER NOT NULL,
+        product_id  BIGINT NOT NULL,
         image_path  TEXT NOT NULL,
         image_order INTEGER NOT NULL DEFAULT 0,
         CONSTRAINT fk_product_images_product
@@ -231,6 +231,29 @@ async function initializeDatabase() {
             COALESCE((SELECT MAX(id) FROM public.laet_users), 0) + 1,
             false
           );
+        END IF;
+      END$$;
+    `);
+
+    // Migração: id de produtos pode ter sido criado como INTEGER em bancos antigos.
+    // Como agora geramos ids via Date.now() (13 dígitos), é preciso BIGINT.
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema='public' AND table_name='laet_products'
+            AND column_name='id' AND data_type <> 'bigint'
+        ) THEN
+          ALTER TABLE public.laet_products ALTER COLUMN id TYPE BIGINT;
+        END IF;
+
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema='public' AND table_name='laet_product_images'
+            AND column_name='product_id' AND data_type <> 'bigint'
+        ) THEN
+          ALTER TABLE public.laet_product_images ALTER COLUMN product_id TYPE BIGINT;
         END IF;
       END$$;
     `);
