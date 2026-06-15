@@ -221,6 +221,17 @@ async function initializeDatabase() {
             END;
           END IF;
         END IF;
+
+        -- Ressincroniza a sequence da IDENTITY com o maior id existente
+        -- (evita "duplicate key value violates unique constraint laet_users_pkey")
+        IF EXISTS (SELECT 1 FROM information_schema.tables
+                   WHERE table_schema='public' AND table_name='laet_users') THEN
+          PERFORM setval(
+            pg_get_serial_sequence('public.laet_users','id'),
+            COALESCE((SELECT MAX(id) FROM public.laet_users), 0) + 1,
+            false
+          );
+        END IF;
       END$$;
     `);
 

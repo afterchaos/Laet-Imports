@@ -97,6 +97,14 @@ function requireAdmin(req, res, next) {
     return next();
   }
 
+  // 1b) sessão de usuário criado via Postgres (token de sessão gerado no login)
+  if (tokenHeader && global.__LAET_SESSIONS && global.__LAET_SESSIONS.has(tokenHeader)) {
+    const user = global.__LAET_SESSIONS.get(tokenHeader);
+    req.adminSession = { user };
+    req.adminRole = user && user.role ? user.role : 'editor';
+    return next();
+  }
+
 
   // 2) modo local: validar sessão via global.__LAET_SESSIONS usando o token do header
   if (mode === 'local') {
@@ -192,6 +200,23 @@ app.post('/api/admin/login', async (req, res) => {
     }
   } catch (e) {
     // continua para o fluxo legado/prod
+  }
+
+  // Modo Postgres: autentica contra a tabela laet_users
+  try {
+    if (!database._getMode || database._getMode() !== 'local') {
+      const users = await database.getUsers();
+      const user = users.find(u => String(u.username) === username && String(u.password) === password);
+      if (user) {
+        const sessionToken = Buffer.from(`${username}:${Date.now()}:${process.env.TOKEN_SEED || 'seed'}`).toString('base64');
+        if (!global.__LAET_SESSIONS) global.__LAET_SESSIONS = new Map();
+        global.__LAET_SESSIONS.set(sessionToken, user);
+        req.adminSession = { user };
+        return res.json({ user: { id: user.id, username: user.username, role: user.role, name: user.name }, token: sessionToken });
+      }
+    }
+  } catch (e) {
+    // continua para o fluxo legado/fallback
   }
 
   // Legado/compat: se ADMIN_TOKEN estiver setado, aceita login "dummy" para não quebrar.
@@ -660,5 +685,3 @@ const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 app.listen(PORT, () => {
   console.log(`LAET running on port ${PORT}`);
 });
-
-
