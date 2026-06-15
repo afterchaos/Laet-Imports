@@ -518,13 +518,14 @@ async function getUsers() {
 async function createUser(user) {
   await initializeDatabase();
 
-  const username = String(user?.username || '');
-  const password = String(user?.password ?? '');
+  const username = String(user?.username ?? '').trim();
+  const password = typeof user?.password === 'string' ? user.password : String(user?.password ?? '');
   const role = String(user?.role || 'editor');
   const name = String(user?.name || '');
   const id = user?.id !== undefined ? Number(user.id) : undefined;
 
   if (!username) throw new Error('username é obrigatório');
+  if (!password) throw new Error('password é obrigatório');
 
   if (id !== undefined && !Number.isNaN(id)) {
     if (id === 1) throw new Error('Protected');
@@ -541,6 +542,7 @@ async function createUser(user) {
 
     return id;
   }
+
 
   if (username === 'admin') {
     // mantém compatibilidade: não protege por username (protegemos id=1)

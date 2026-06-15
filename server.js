@@ -526,7 +526,16 @@ app.post('/api/admin/users', requireAdmin, async (req, res) => {
 
     return res.json({ ok: true, id });
   } catch (e) {
-    return res.status(400).json({ error: e.message || String(e) });
+    const msg = e && e.message ? e.message : String(e);
+    console.error('[POST /api/admin/users] bad request', {
+      error: msg,
+      body: req.body,
+      headers: {
+        'x-admin-token': req.headers['x-admin-token'],
+        'x-admin-role': req.headers['x-admin-role'],
+      },
+    });
+    return res.status(400).json({ error: msg });
   }
 });
 
@@ -544,7 +553,14 @@ app.put('/api/admin/users/:id', requireAdmin, async (req, res) => {
 
     return res.json({ ok: true });
   } catch (e) {
-    return res.status(400).json({ error: e.message || String(e) });
+    const msg = e && e.message ? e.message : String(e);
+    console.error('[PUT /api/admin/users/:id] bad request', {
+      error: msg,
+      id: req.params && req.params.id,
+      body: req.body,
+      adminRole: req.adminRole,
+    });
+    return res.status(400).json({ error: msg });
   }
 });
 
