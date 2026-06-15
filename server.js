@@ -77,7 +77,7 @@ function normalizeBadge(badge, badgeText) {
   return { badge: b, badgeText: t || null };
 }
 
-function requireAdmin(req, res, next) {
+async function requireAdmin(req, res, next) {
   const roleHeader = req.headers['x-admin-role'];
   const tokenHeader = req.headers['x-admin-token'];
 
@@ -87,7 +87,7 @@ function requireAdmin(req, res, next) {
 
 
   // garante estrutura da sessão em local
-  if (mode === 'local' && !global.__LAET_SESSIONS) {
+  if (!global.__LAET_SESSIONS) {
     global.__LAET_SESSIONS = new Map();
   }
 
@@ -98,44 +98,46 @@ function requireAdmin(req, res, next) {
   }
 
   // 1b) sessão de usuário criado via Postgres (token de sessão gerado no login)
-  if (tokenHeader && global.__LAET_SESSIONS && global.__LAET_SESSIONS.has(tokenHeader)) {
+  if (tokenHeader && global.__LAET_SESSIONS.has(tokenHeader)) {
     const user = global.__LAET_SESSIONS.get(tokenHeader);
     req.adminSession = { user };
     req.adminRole = user && user.role ? user.role : 'editor';
     return next();
   }
 
+  // 1c) Sessão não encontrada na memória (ex: processo reiniciado pelo PM2).
+  // Valida o token de forma stateless: ele é base64(username:timestamp:seed),
+  // gerado no login. Se o usuário ainda existir no banco, restaura a sessão.
+  if (tokenHeader && tokenHeader !== expectedToken) {
+    try {
+      const decoded = Buffer.from(tokenHeader, 'base64').toString('utf8');
+      const parts = decoded.split(':');
+      const usernameFromToken = parts[0];
+      const seed = process.env.TOKEN_SEED || 'seed';
+      if (usernameFromToken && decoded.endsWith(`:${seed}`)) {
+        const users = await database.getUsers();
+        const user = users.find(u => String(u.username) === usernameFromToken);
+        if (user) {
+          global.__LAET_SESSIONS.set(tokenHeader, user);
+          req.adminSession = { user };
+          req.adminRole = user.role || 'editor';
+          return next();
+        }
+      }
+    } catch (_) {
+      // token malformado, ignora e segue para negar acesso
+    }
+  }
+
 
   // 2) modo local: validar sessão via global.__LAET_SESSIONS usando o token do header
   if (mode === 'local') {
-    if (tokenHeader && global.__LAET_SESSIONS && global.__LAET_SESSIONS.has(tokenHeader)) {
-      const user = global.__LAET_SESSIONS.get(tokenHeader);
-      req.adminSession = { user };
-      req.adminRole = user && user.role ? user.role : 'editor';
-      return next();
-    }
-
     // fallback: se adminSession já foi preenchido pelo /api/admin/login (mesma instância)
     if (req.adminSession && req.adminSession.user) {
       req.adminRole = req.adminSession.user.role || 'editor';
       return next();
     }
   }
-
-// 3) Postgres/produção (ou qualquer outro modo): aceita token fixo legado
-  if (tokenHeader && tokenHeader === expectedToken) {
-    req.adminRole = roleHeader || 'editor';
-    return next();
-  }
-
-  // 4) Compatibilidade: se o login foi feito pelo fallback legado e token não bate,
-  // ainda assim permite acesso quando a UI está usando ADMIN_TOKEN.
-  // Isso evita cenário de 501/401 na VPS por mismatch de token.
-  if (usernameFromPayload && usernameFromPayload === 'admin' && expectedToken) {
-    req.adminRole = roleHeader || 'admin';
-    return next();
-  }
-
 
   // logs mínimos para debug do problema de login
   try {
