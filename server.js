@@ -438,7 +438,10 @@ app.post('/api/admin/products/:id/images', requireAdmin, upload.array('images', 
   const products = await database.getProducts();
   const existing = products.find(p => Number(p.id) === productId);
   const existingUrls = existing && Array.isArray(existing.imageUrls) ? existing.imageUrls : [];
-  const newUrls = files.map(f => (process.env.PUBLIC_UPLOAD_DIR || '/uploads') + '/' + path.basename(f.path));
+  const newUrls = files.map(f => {
+    const rel = path.relative(UPLOAD_DIR, f.path).split(path.sep).join('/');
+    return (process.env.PUBLIC_UPLOAD_DIR || '/uploads') + '/' + rel;
+  });
   const imageUrls = [...existingUrls, ...newUrls];
 
   const next = {
