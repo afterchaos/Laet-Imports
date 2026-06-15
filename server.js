@@ -34,11 +34,21 @@ app.use(PUBLIC_UPLOAD_DIR, express.static(UPLOAD_DIR));
 // Database abstraction (Postgres or local JSON fallback)
 const database = require('./database');
 
+// initializeDatabase durante startup
+(async () => {
+  try {
+    await database.initializeDatabase();
+    console.log('[STARTUP] Database inicializada.');
+  } catch (e) {
+    console.error('[STARTUP] Falha ao inicializar database:', e && e.message ? e.message : String(e));
+  }
+})();
+
 // Health
 app.get('/health', async (req, res) => {
   try {
-    await database._init();
-    return res.json({ ok: true, mode: database._getMode() });
+    await database.initializeDatabase();
+    return res.json({ ok: true, mode: 'postgres' });
   } catch (e) {
     return res.status(500).json({ ok: false, error: e.message });
   }
@@ -72,18 +82,20 @@ function requireAdmin(req, res, next) {
 
   const expectedToken = process.env.ADMIN_TOKEN || 'admin-token';
 
-  const mode = database && typeof database._getMode === 'function' ? database._getMode() : 'unknown';
+  const mode = 'postgres';
+
 
   // garante estrutura da sessão em local
   if (mode === 'local' && !global.__LAET_SESSIONS) {
     global.__LAET_SESSIONS = new Map();
   }
 
-  // 1) token fixo legado via ADMIN_TOKEN (funciona mesmo no modo local)
+  // 1) token fixo legado via ADMIN_TOKEN
   if (tokenHeader && tokenHeader === expectedToken) {
     req.adminRole = roleHeader || 'editor';
     return next();
   }
+
 
   // 2) modo local: validar sessão via global.__LAET_SESSIONS usando o token do header
   if (mode === 'local') {
