@@ -724,6 +724,8 @@ userForm.addEventListener('submit', async (e) => {
         if (id) {
             await apiAdminPut(`/api/admin/users/${id}`, payload);
         } else {
+            // CREATE: garantir password sempre presente
+            if (!payload.password) throw new Error('Senha é obrigatoria para criar usuario.');
             await apiAdminPost('/api/admin/users', payload);
         }
 
