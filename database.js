@@ -202,8 +202,13 @@ async function initializeDatabase() {
               NULL;
             END;
 
-            -- Ajusta a coluna para IDENTITY
-            EXECUTE 'ALTER TABLE public.laet_users ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY';
+            -- Ajusta a coluna para IDENTITY (pode já estar como identity em alguns bancos)
+            BEGIN
+              EXECUTE 'ALTER TABLE public.laet_users ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY';
+            EXCEPTION WHEN duplicate_object OR invalid_parameter_value OR feature_not_supported OR others THEN
+              -- Se já era identity ou não suportar a alteração, ignora
+              NULL;
+            END;
 
             -- Recria PK na coluna id
             BEGIN
