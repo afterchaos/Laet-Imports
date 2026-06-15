@@ -833,6 +833,35 @@ async function saveContentFromForm() {
 
         await loadAdminData();
         loadContentToForm();
+        // força reload do DOM e atualiza textarea/inputs para garantir que não fique com valores antigos em cache/session.
+        if (typeof document !== 'undefined') {
+            document.querySelectorAll('#content-tab input, #content-tab textarea').forEach(el => {
+                const id = el && el.id ? el.id : '';
+                if (!id) return;
+                const map = {
+                    'edit-hero-badge':'heroBadge','edit-hero-title':'heroTitle','edit-hero-description':'heroDescription',
+                    'edit-hero-btn-1':'heroBtn1','edit-hero-btn-2':'heroBtn2',
+                    'edit-feature-1-title':'feature1Title','edit-feature-1-desc':'feature1Desc',
+                    'edit-feature-2-title':'feature2Title','edit-feature-2-desc':'feature2Desc',
+                    'edit-feature-3-title':'feature3Title','edit-feature-3-desc':'feature3Desc',
+                    'edit-feature-4-title':'feature4Title','edit-feature-4-desc':'feature4Desc',
+                    'edit-products-title':'productsSectionTitle','edit-products-desc':'productsSectionDesc',
+                    'edit-offer-badge':'offerBadge','edit-offer-title':'offerTitle','edit-offer-description':'offerDescription','edit-offer-btn':'offerBtn',
+                    'edit-newsletter-title':'newsletterTitle','edit-newsletter-desc':'newsletterDesc',
+                    'edit-footer-description':'footerDescription','edit-footer-copyright':'footerCopyright',
+                    'edit-whatsapp':'__contact_whatsapp','edit-instagram':'__contact_instagram'
+                };
+                const key = map[id];
+                if (!key) return;
+                if (key === '__contact_whatsapp') {
+                    el.value = (siteContent && siteContent.__contact && siteContent.__contact.whatsapp) ? siteContent.__contact.whatsapp : (localStorage.getItem('laet-contact') ? JSON.parse(localStorage.getItem('laet-contact')||'{}').whatsapp : '');
+                } else if (key === '__contact_instagram') {
+                    el.value = (siteContent && siteContent.__contact && siteContent.__contact.instagram) ? siteContent.__contact.instagram : (localStorage.getItem('laet-contact') ? JSON.parse(localStorage.getItem('laet-contact')||'{}').instagram : '');
+                } else {
+                    el.value = siteContent && siteContent[key] !== undefined ? siteContent[key] : '';
+                }
+            });
+        }
         showToast('Conteúdo do site salvo com sucesso!');
     } catch (err) {
         alert('Erro ao salvar conteúdo do site');
