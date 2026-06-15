@@ -70,13 +70,7 @@ async function initializeDatabase() {
 
     // Cria tabelas
     await pool.query(`
-      CREATE TABLE IF NOT EXISTS laet_users (
-        id          INTEGER PRIMARY KEY,
-        username    TEXT NOT NULL UNIQUE,
-        password    TEXT NOT NULL,
-        role        TEXT NOT NULL DEFAULT 'editor',
-        name        TEXT NOT NULL DEFAULT ''
-      );
+      CREATE TABLE IF NOT EXISTS laet_users (\r\n        id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\r\n        username    TEXT NOT NULL UNIQUE,\r\n        password    TEXT NOT NULL,\r\n        role        TEXT NOT NULL DEFAULT 'editor',\r\n        name        TEXT NOT NULL DEFAULT ''\r\n      );\r\n
 
       CREATE TABLE IF NOT EXISTS laet_categories (
         id          TEXT PRIMARY KEY,
@@ -168,6 +162,60 @@ async function initializeDatabase() {
       );
     }
 
+  // Migração segura de PK id -> IDENTITY (evita null/400 em INSERT sem id)
+    await pool.query(`
+      DO $$
+      BEGIN
+        -- Se laet_users existir e a coluna id não for identidade, converte (preservando dados)
+        IF EXISTS (SELECT 1 FROM information_schema.tables
+                   WHERE table_schema='public' AND table_name='laet_users') THEN
+          IF EXISTS (
+            SELECT 1
+            FROM information_schema.columns
+            WHERE table_schema='public'
+              AND table_name='laet_users'
+              AND column_name='id'
+              AND COALESCE(column_default,'') NOT ILIKE '%identity%'
+          ) THEN
+            -- Remove a PK atual, se necessário
+            BEGIN
+              IF EXISTS (
+                SELECT 1
+                FROM information_schema.table_constraints tc
+                WHERE tc.table_schema='public'
+                  AND tc.table_name='laet_users'
+                  AND tc.constraint_type='PRIMARY KEY'
+              ) THEN
+                EXECUTE (
+                  SELECT 'ALTER TABLE public.laet_users DROP CONSTRAINT ' || quote_ident(constraint_name)
+                  FROM (
+                    SELECT tc.constraint_name
+                    FROM information_schema.table_constraints tc
+                    WHERE tc.table_schema='public'
+                      AND tc.table_name='laet_users'
+                      AND tc.constraint_type='PRIMARY KEY'
+                  ) t
+                );
+              END IF;
+            EXCEPTION WHEN OTHERS THEN
+              -- se falhar por falta de constraint, segue
+              NULL;
+            END;
+
+            -- Ajusta a coluna para IDENTITY
+            EXECUTE 'ALTER TABLE public.laet_users ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY';
+
+            -- Recria PK na coluna id
+            BEGIN
+              EXECUTE 'ALTER TABLE public.laet_users ADD PRIMARY KEY (id)';
+            EXCEPTION WHEN OTHERS THEN
+              NULL;
+            END;
+          END IF;
+        END IF;
+      END$$;
+    `);
+
     // Logs: tabelas/colunas/PK/FK/índices
     const schemaRows = await pool.query(`
       SELECT table_name, column_name, data_type, is_nullable, column_default
@@ -178,6 +226,7 @@ async function initializeDatabase() {
     `);
 
     console.log('[DATABASE] initializeDatabase OK');
+
     console.log('[DATABASE] Tabelas/colunas:');
     for (const r of schemaRows.rows) {
       console.log(`- ${r.table_name}.${r.column_name} (${r.data_type}, nullable=${r.is_nullable})`);
