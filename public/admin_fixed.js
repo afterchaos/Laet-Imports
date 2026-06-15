@@ -832,13 +832,10 @@ async function saveContentFromForm() {
         await apiAdminPut('/api/admin/contact', contactPayload);
 
         await loadAdminData();
-        loadContentToForm();
-        // força sincronização: re-carrega e re-aplica diretamente os valores do siteContent.
-        // (Isso evita UI ficar presa em valores antigos mesmo depois do loadAdminData.)
-        loadContentToForm();
+
         if (typeof document !== 'undefined') {
-            // Contato: é salvo no backend em /api/admin/contact, e o loadContentToForm lê do localStorage.
-            // Para ficar consistente, grava no localStorage após o save.
+            // Atualiza localStorage de contato para refletir o que está no form
+            // (o loadContentToForm lê do localStorage para whatsapp/instagram)
             try {
                 const contactAfterSave = {
                     whatsapp: String(document.getElementById('edit-whatsapp')?.value || '').trim(),
@@ -846,8 +843,11 @@ async function saveContentFromForm() {
                 };
                 localStorage.setItem('laet-contact', JSON.stringify(contactAfterSave));
             } catch (_) {}
-            loadContentToForm();
         }
+
+        // Agora reaplica UMA vez os valores do backend (siteContent) + contato do localStorage.
+        loadContentToForm();
+        
         showToast('Conteúdo do site salvo com sucesso!');
     } catch (err) {
         alert('Erro ao salvar conteúdo do site');
