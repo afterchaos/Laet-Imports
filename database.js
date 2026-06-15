@@ -24,6 +24,7 @@ const JSON_PATHS = {
   categories: path.join(DATA_DIR, 'categories.json'),
   siteContent: path.join(DATA_DIR, 'site-content.json'),
   contact: path.join(DATA_DIR, 'contact.json'),
+  users: path.join(DATA_DIR, 'users.json'),
 };
 
 const defaults = {
@@ -265,6 +266,7 @@ function init() {
     }
 
     log('[DATABASE] PostgreSQL indisponível.');
+    log(`[DATABASE] motivo: ${r && r.reason ? r.reason : 'desconhecido'}`);
     log('[DATABASE] Utilizando armazenamento local JSON.');
     _mode = 'local';
   })();
@@ -573,6 +575,160 @@ async function saveContact(contact) {
   writeJsonAtomic(JSON_PATHS.contact, c);
 }
 
+// =====================
+// Users (Postgres)
+// =====================
+
+async function getUsers() {
+  await init();
+
+  if (_mode !== 'postgres') {
+    // fallback só pra não quebrar em dev; na VPS o esperado é postgres ativo
+    const raw = readJson(JSON_PATHS.users, { users: [] });
+    const users = Array.isArray(raw.users) ? raw.users : [];
+    return users.map(u => ({
+      id: Number(u.id),
+      username: String(u.username || ''),
+      password: String(u.password || ''),
+      role: String(u.role || 'editor'),
+      name: String(u.name || ''),
+    }));
+  }
+
+  const r = await pool.query(`
+    SELECT id, username, password, role, name
+    FROM laet_users
+    ORDER BY id ASC
+  `);
+
+  return r.rows.map(row => ({
+    id: Number(row.id),
+    username: String(row.username),
+    password: String(row.password || ''),
+    role: String(row.role || 'editor'),
+    name: String(row.name || ''),
+  }));
+}
+
+async function createUser(user) {
+  await init();
+
+  const u = {
+    id: user && user.id !== undefined ? Number(user.id) : undefined,
+    username: String(user && user.username ? user.username : ''),
+    password: String(user && user.password !== undefined ? user.password : ''),
+    role: String(user && user.role ? user.role : 'editor'),
+    name: String(user && user.name ? user.name : ''),
+  };
+
+  if (!u.username) throw new Error('username é obrigatório');
+
+  if (_mode !== 'postgres') {
+    const parsed = readJson(JSON_PATHS.users, { users: [] });
+    const users = Array.isArray(parsed.users) ? parsed.users : [];
+
+    const nextId = u.id || (users.reduce((m, x) => Math.max(m, Number(x.id) || 0), 0) + 1);
+    if (users.some(x => String(x.username) === u.username)) throw new Error('Username exists');
+    if (nextId === 1) throw new Error('Protected');
+
+    users.push({ id: nextId, username: u.username, password: u.password, role: u.role, name: u.name });
+    writeJsonAtomic(JSON_PATHS.users, { users });
+    return nextId;
+  }
+
+  // valida username único
+  const exists = await pool.query('SELECT 1 FROM laet_users WHERE username=$1 LIMIT 1', [u.username]);
+  if (exists.rows.length) throw new Error('Username exists');
+
+  const nextId = u.id || undefined;
+  if (nextId === 1) throw new Error('Protected');
+
+  if (nextId) {
+    await pool.query(`
+      INSERT INTO laet_users (id, username, password, role, name)
+      VALUES ($1,$2,$3,$4,$5)
+    `, [nextId, u.username, u.password, u.role, u.name]);
+    return nextId;
+  }
+
+  const r = await pool.query(`
+    INSERT INTO laet_users (username, password, role, name)
+    VALUES ($1,$2,$3,$4)
+    RETURNING id
+  `, [u.username, u.password, u.role, u.name]);
+
+  return Number(r.rows[0].id);
+}
+
+async function updateUser(id, patch, opts = {}) {
+  await init();
+  const userId = Number(id);
+  if (!userId || Number.isNaN(userId)) throw new Error('id inválido');
+
+  if (userId === 1 && opts.adminRole !== 'admin') {
+    throw new Error('Forbidden');
+  }
+
+  const p = patch || {};
+  const fields = [];
+  const values = [];
+  let idx = 1;
+
+  if (p.username !== undefined) {
+    fields.push(`username=$${idx++}`);
+    values.push(String(p.username));
+  }
+  if (p.password !== undefined) {
+    fields.push(`password=$${idx++}`);
+    values.push(String(p.password));
+  }
+  if (p.role !== undefined) {
+    fields.push(`role=$${idx++}`);
+    values.push(String(p.role));
+  }
+  if (p.name !== undefined) {
+    fields.push(`name=$${idx++}`);
+    values.push(String(p.name));
+  }
+
+  if (!fields.length) return;
+
+  if (_mode !== 'postgres') {
+    const parsed = readJson(JSON_PATHS.users, { users: [] });
+    const users = Array.isArray(parsed.users) ? parsed.users : [];
+    const existing = users.find(x => Number(x.id) === userId);
+    if (!existing) throw new Error('Not found');
+
+    if (p.name !== undefined) existing.name = String(p.name);
+    if (p.username !== undefined) existing.username = String(p.username);
+    if (p.password !== undefined) existing.password = String(p.password);
+    if (p.role !== undefined) existing.role = String(p.role);
+
+    writeJsonAtomic(JSON_PATHS.users, { users });
+    return;
+  }
+
+  values.push(userId);
+  await pool.query(`UPDATE laet_users SET ${fields.join(', ')} WHERE id=$${idx}`, values);
+}
+
+async function deleteUser(id, opts = {}) {
+  await init();
+  const userId = Number(id);
+
+  if (userId === 1) throw new Error('Protected');
+
+  if (_mode !== 'postgres') {
+    const parsed = readJson(JSON_PATHS.users, { users: [] });
+    const users = Array.isArray(parsed.users) ? parsed.users : [];
+    const out = users.filter(u => Number(u.id) !== userId);
+    writeJsonAtomic(JSON_PATHS.users, { users: out });
+    return;
+  }
+
+  await pool.query('DELETE FROM laet_users WHERE id=$1', [userId]);
+}
+
 module.exports = {
   getProducts,
   saveProducts,
@@ -582,6 +738,13 @@ module.exports = {
   saveSiteContent,
   getContact,
   saveContact,
+
+  // Users (Postgres-first)
+  getUsers,
+  createUser,
+  updateUser,
+  deleteUser,
+
   // for debugging only
   _getMode: getMode,
   _init: init,

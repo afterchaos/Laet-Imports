@@ -418,28 +418,19 @@ app.get('/api/admin/categories', requireAdmin, async (req, res) => {
 
 app.get('/api/admin/users', requireAdmin, async (req, res) => {
   try {
-    if (database._getMode && database._getMode() === 'local') {
-      const usersPath = path.join(__dirname, 'data', 'users.json');
-      const raw = fs.existsSync(usersPath) ? fs.readFileSync(usersPath, 'utf8') : '{"users": []}';
-      let parsed = { users: [] };
-      try {
-        parsed = JSON.parse(raw);
-      } catch (_) {
-        parsed = { users: [] };
-      }
-      const users = Array.isArray(parsed.users) ? parsed.users : [];
-      return res.json({ users: users.map(u => ({
+    const users = await database.getUsers();
+    return res.json({
+      users: users.map(u => ({
         id: u.id,
         username: u.username,
         password: undefined,
         role: u.role,
         name: u.name,
-      })) });
-    }
-  } catch (_) {
-    // ignore
+      })),
+    });
+  } catch (e) {
+    return res.status(500).json({ error: e.message });
   }
-  res.status(501).json({ error: 'Usuários dependem de Postgres (fora do escopo do fallback local).' });
 });
 
 
@@ -496,103 +487,48 @@ app.delete('/api/admin/categories/:id', requireAdmin, async (req, res) => {
 
 app.post('/api/admin/users', requireAdmin, async (req, res) => {
   try {
-    if (database._getMode && database._getMode() === 'local') {
-      const usersPath = path.join(__dirname, 'data', 'users.json');
-      const b = req.body || {};
-      const id = Number(b.id || Date.now());
+    const b = req.body || {};
 
-      const raw = fs.existsSync(usersPath) ? fs.readFileSync(usersPath, 'utf8') : '{"users": []}';
-      let parsed = { users: [] };
-      try {
-        parsed = JSON.parse(raw);
-      } catch (_) {
-        parsed = { users: [] };
-      }
-      const users = Array.isArray(parsed.users) ? parsed.users : [];
+    const id = await database.createUser({
+      id: b.id !== undefined ? Number(b.id) : undefined,
+      username: String(b.username || ''),
+      password: String(b.password || ''),
+      role: String(b.role || 'editor'),
+      name: String(b.name || ''),
+    });
 
-      if (id === 1) return res.status(400).json({ error: 'Protected' });
-      if (users.some(u => String(u.username) === String(b.username))) {
-        return res.status(400).json({ error: 'Username exists' });
-      }
-
-      const next = {
-        id,
-        username: String(b.username || ''),
-        password: String(b.password || ''),
-        role: String(b.role || 'editor'),
-        name: String(b.name || ''),
-      };
-
-      users.push(next);
-      writeJsonAtomic(usersPath, { users });
-      return res.json({ ok: true, id });
-    }
-  } catch (_) {
-    // ignore
+    return res.json({ ok: true, id });
+  } catch (e) {
+    return res.status(400).json({ error: e.message || String(e) });
   }
-  res.status(501).json({ error: 'Usuários dependem de Postgres (fora do escopo do fallback local).' });
 });
 
 app.put('/api/admin/users/:id', requireAdmin, async (req, res) => {
   try {
-    if (database._getMode && database._getMode() === 'local') {
-      const usersPath = path.join(__dirname, 'data', 'users.json');
-      const id = Number(req.params.id);
-      const b = req.body || {};
+    const id = Number(req.params.id);
+    const b = req.body || {};
 
-      const raw = fs.existsSync(usersPath) ? fs.readFileSync(usersPath, 'utf8') : '{"users": []}';
-      let parsed = { users: [] };
-      try {
-        parsed = JSON.parse(raw);
-      } catch (_) {
-        parsed = { users: [] };
-      }
-      const users = Array.isArray(parsed.users) ? parsed.users : [];
-      const existing = users.find(u => Number(u.id) === id);
-      if (!existing) return res.status(404).json({ error: 'Not found' });
+    await database.updateUser(id, {
+      username: b.username !== undefined ? String(b.username) : undefined,
+      password: b.password !== undefined ? String(b.password) : undefined,
+      role: b.role !== undefined ? String(b.role) : undefined,
+      name: b.name !== undefined ? String(b.name) : undefined,
+    }, { adminRole: req.adminRole });
 
-      if (Number(existing.id) === 1 && req.adminRole !== 'admin') {
-        return res.status(403).json({ error: 'Forbidden' });
-      }
-
-      existing.name = String(b.name || existing.name || '');
-      existing.username = String(b.username || existing.username || '');
-      if (b.password !== undefined) existing.password = String(b.password);
-      existing.role = String(b.role || existing.role || 'editor');
-
-      writeJsonAtomic(usersPath, { users });
-      return res.json({ ok: true });
-    }
-  } catch (_) {
-    // ignore
+    return res.json({ ok: true });
+  } catch (e) {
+    return res.status(400).json({ error: e.message || String(e) });
   }
-  res.status(501).json({ error: 'Usuários dependem de Postgres (fora do escopo do fallback local).' });
 });
 
 app.delete('/api/admin/users/:id', requireAdmin, async (req, res) => {
   try {
-    if (database._getMode && database._getMode() === 'local') {
-      const usersPath = path.join(__dirname, 'data', 'users.json');
-      const id = Number(req.params.id);
-      if (id === 1) return res.status(400).json({ error: 'Protected' });
-
-      const raw = fs.existsSync(usersPath) ? fs.readFileSync(usersPath, 'utf8') : '{"users": []}';
-      let parsed = { users: [] };
-      try {
-        parsed = JSON.parse(raw);
-      } catch (_) {
-        parsed = { users: [] };
-      }
-      const users = Array.isArray(parsed.users) ? parsed.users : [];
-      const out = users.filter(u => Number(u.id) !== id);
-
-      writeJsonAtomic(usersPath, { users: out });
-      return res.json({ ok: true });
-    }
-  } catch (_) {
-    // ignore
+    const id = Number(req.params.id);
+    await database.deleteUser(id, { adminRole: req.adminRole });
+    return res.json({ ok: true });
+  } catch (e) {
+    return res.status(400).json({ error: e.message || String(e) });
   }
-  res.status(501).json({ error: 'Usuários dependem de Postgres (fora do escopo do fallback local).' });
 });
 
 
