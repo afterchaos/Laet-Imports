@@ -1,0 +1,30 @@
+[
+  {
+    "id": 1,
+    "name": "Vape Pod System Pro 5000 Puffs",
+    "category": "vapes",
+    "categoryLabel": "Vapes",
+    "price": 89.9,
+    "oldPrice": 129.9,
+    "installment": "3x de R$ 29,97 sem juros",
+    "badge": "sale",
+    "badgeText": "-31%",
+    "icon": "laptop",
+    "imageUrls": [],
+    "description": ""
+  },
+  {
+    "id": 2,
+    "name": "Carregador Portatil 10000mAh",
+    "category": "gadgets",
+    "categoryLabel": "Gadgets",
+    "price": 79.9,
+    "oldPrice": null,
+    "installment": "2x de R$ 39,95 sem juros",
+    "badge": "new",
+    "badgeText": "Novo",
+    "icon": "storage",
+    "imageUrls": [],
+    "description": ""
+  }
+]
