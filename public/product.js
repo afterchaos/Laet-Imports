@@ -136,14 +136,70 @@ function renderProductDetail(product) {
         thumbButtons.forEach(btn => btn.addEventListener('click', () => showImage(parseInt(btn.dataset.index, 10))));
 
         let startX = null;
+        let dragDistance = 0;
         const galleryMain = document.getElementById('main-gallery-image');
-        galleryMain?.addEventListener('pointerdown', (e) => { startX = e.clientX; });
+        galleryMain?.addEventListener('pointerdown', (e) => { startX = e.clientX; dragDistance = 0; });
+        galleryMain?.addEventListener('pointermove', (e) => {
+            if (startX !== null) dragDistance = e.clientX - startX;
+        });
         galleryMain?.addEventListener('pointerup', (e) => {
             if (startX === null) return;
             const diff = e.clientX - startX;
             if (diff > 40) showImage(currentIndex - 1);
             if (diff < -40) showImage(currentIndex + 1);
             startX = null;
+        });
+
+        // Abre a imagem em tela cheia ao clicar (ignora cliques que foram, na verdade, um arrasto/swipe)
+        galleryMain?.addEventListener('click', () => {
+            if (Math.abs(dragDistance) < 10) openLightbox(currentIndex);
+        });
+
+        // Monta o lightbox (visualização em tela cheia) uma única vez por carregamento da página
+        document.getElementById('image-lightbox')?.remove();
+        const lightbox = document.createElement('div');
+        lightbox.id = 'image-lightbox';
+        lightbox.className = 'image-lightbox-overlay';
+        lightbox.innerHTML = `
+            <button type="button" class="image-lightbox-close" aria-label="Fechar imagem">&times;</button>
+            ${imageUrls.length > 1 ? `
+                <button type="button" class="image-lightbox-nav image-lightbox-prev" aria-label="Imagem anterior">‹</button>
+                <button type="button" class="image-lightbox-nav image-lightbox-next" aria-label="Próxima imagem">›</button>
+            ` : ''}
+            <img class="image-lightbox-img" src="" alt="${product.name}">
+        `;
+        document.body.appendChild(lightbox);
+        const lightboxImg = lightbox.querySelector('.image-lightbox-img');
+
+        function openLightbox(index) {
+            lightboxImg.src = imageUrls[index];
+            lightbox.classList.add('active');
+        }
+
+        function closeLightbox() {
+            lightbox.classList.remove('active');
+        }
+
+        lightbox.addEventListener('click', (e) => {
+            if (e.target === lightbox || e.target.classList.contains('image-lightbox-close')) {
+                closeLightbox();
+            }
+        });
+        lightbox.querySelector('.image-lightbox-prev')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showImage(currentIndex - 1);
+            lightboxImg.src = imageUrls[currentIndex];
+        });
+        lightbox.querySelector('.image-lightbox-next')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showImage(currentIndex + 1);
+            lightboxImg.src = imageUrls[currentIndex];
+        });
+        document.addEventListener('keydown', (e) => {
+            if (!lightbox.classList.contains('active')) return;
+            if (e.key === 'Escape') closeLightbox();
+            if (e.key === 'ArrowLeft') { showImage(currentIndex - 1); lightboxImg.src = imageUrls[currentIndex]; }
+            if (e.key === 'ArrowRight') { showImage(currentIndex + 1); lightboxImg.src = imageUrls[currentIndex]; }
         });
     } else {
         detailImage.innerHTML = `<div class="product-image-icon">${icons[product.icon] || icons.laptop}</div>`;

@@ -221,16 +221,6 @@ app.post('/api/admin/login', async (req, res) => {
     // continua para o fluxo legado/fallback
   }
 
-  // Legado/compat: se ADMIN_TOKEN estiver setado, aceita login "dummy" para não quebrar.
-  // (O CRUD de usuários continua legado fora do escopo do fallback local.)
-  const expectedToken = process.env.ADMIN_TOKEN || 'admin-token';
-  if (username === 'admin' && password === '123' && expectedToken) {
-    return res.json({
-      user: { id: 1, username: 'admin', role: 'admin', name: 'Administrador' },
-      token: expectedToken,
-    });
-  }
-
   return res.status(501).json({ error: 'Login disponível apenas quando Postgres estiver ativo (ou fallback local).' });
 });
 

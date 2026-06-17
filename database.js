@@ -717,7 +717,6 @@ async function deleteUser(id) {
   await initializeDatabase();
 
   const userId = Number(id);
-  if (userId === 1) throw new Error('Protected');
 
   await pool.query('DELETE FROM laet_users WHERE id=$1', [userId]);
 }

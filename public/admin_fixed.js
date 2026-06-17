@@ -459,7 +459,7 @@ function renderAdminUsers() {
                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                         </svg>
                     </button>
-                    <button class="btn-icon delete" onclick="deleteUser(${user.id})" title="Excluir" ${user.id === 1 ? 'disabled style="opacity:0.3;cursor:not-allowed"' : ''}>
+                    <button class="btn-icon delete" onclick="deleteUser(${user.id})" title="Excluir">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="3 6 5 6 21 6"></polyline>
                             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -690,7 +690,6 @@ window.editUser = function(id) {
 
 window.deleteUser = async function(id) {
     if (currentUser.role !== 'admin') return alert('Apenas administradores podem gerenciar usuarios.');
-    if (id === 1) return alert('O administrador principal nao pode ser excluido.');
 
     if (!confirm('Tem certeza que deseja excluir este usuario?')) return;
 
