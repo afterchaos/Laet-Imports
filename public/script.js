@@ -94,9 +94,9 @@ const toast = document.getElementById('toast');
 const toastMessage = document.getElementById('toast-message');
 const menuToggle = document.getElementById('menu-toggle');
 const navMobile = document.getElementById('nav-mobile');
+const navDesktop = document.getElementById('nav-desktop');
 const searchInput = document.getElementById('search-input');
 const newsletterForm = document.getElementById('newsletter-form');
-const navLinks = document.querySelectorAll('.nav-link');
 
 // Icon SVGs
 const icons = {
@@ -246,6 +246,33 @@ function openCategoryMenu() {
     categoryToggle.setAttribute('aria-expanded', 'true');
 }
 
+function renderNavLinks() {
+    if (!navDesktop || !navMobile) return;
+
+    const buildLink = (item) => {
+        const a = document.createElement('a');
+        a.href = '#';
+        a.className = 'nav-link' + (item.id === activeCategory ? ' active' : '');
+        a.dataset.category = item.id;
+        a.textContent = item.label;
+        a.addEventListener('click', (e) => {
+            e.preventDefault();
+            filterProducts(item.id);
+            navMobile.classList.remove('active');
+            const sec = document.getElementById('produtos');
+            if (sec) sec.scrollIntoView({ behavior: 'smooth' });
+        });
+        return a;
+    };
+
+    navDesktop.innerHTML = '';
+    navMobile.innerHTML = '';
+    categories.forEach((item) => {
+        navDesktop.appendChild(buildLink(item));
+        navMobile.appendChild(buildLink(item));
+    });
+}
+
 function renderCategoryTabs() {
     if (!categoryMenu) return;
     categoryMenu.innerHTML = '';
@@ -266,11 +293,7 @@ function renderCategoryTabs() {
 
 function filterProducts(category) {
     activeCategory = category || 'todos';
-    const allLinks = document.querySelectorAll('.nav-link');
-    allLinks.forEach(link => {
-        const isActive = link.dataset.category === activeCategory;
-        link.classList.toggle('active', isActive);
-    });
+    renderNavLinks();
     renderCategoryTabs();
     renderProducts(getProductsForCurrentView());
 }
@@ -375,6 +398,7 @@ function applySiteContent() {
 document.addEventListener('DOMContentLoaded', async () => {
     await loadShopData();
 
+    renderNavLinks();
     renderCategoryTabs();
     closeCategoryMenu();
     filterProducts('todos');
@@ -405,20 +429,7 @@ menuToggle.addEventListener('click', () => {
     navMobile.classList.toggle('active');
 });
 
-// Navigation links
-navLinks.forEach(link => {
-    link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const category = e.target.dataset.category;
-
-        navLinks.forEach(l => l.classList.remove('active'));
-        e.target.classList.add('active');
-
-        filterProducts(category);
-        navMobile.classList.remove('active');
-        document.getElementById('produtos').scrollIntoView({ behavior: 'smooth' });
-    });
-});
+// Navigation links are registered dynamically inside renderNavLinks()
 
 // Search
 searchInput.addEventListener('input', (e) => {

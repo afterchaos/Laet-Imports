@@ -1,5 +1,0 @@
-LAET IMPORTS - Relatório de Estrutura (gerado em runtime via initializeDatabase())
-
-- Tabelas/colunas/PKs/FKs/Índices são impressos no console no startup do servidor.
-- Para gerar novamente: reinicie o servidor.
-
