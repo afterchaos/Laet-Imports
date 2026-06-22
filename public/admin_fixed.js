@@ -231,29 +231,87 @@ function showToast(message) {
     }, 3000);
 }
 
-function readImageFiles(files) {
-    return Promise.all(Array.from(files).map(file => new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-    })));
+// Lista de arquivos selecionados (substituindo o FileList imutável)
+let selectedImageFiles = [];
+
+// Comprime e redimensiona uma imagem usando Canvas
+function compressImage(file, maxWidth = 1200, maxHeight = 1200, quality = 0.82) {
+    return new Promise((resolve) => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+            URL.revokeObjectURL(url);
+            let { width, height } = img;
+            if (width > maxWidth || height > maxHeight) {
+                const ratio = Math.min(maxWidth / width, maxHeight / height);
+                width = Math.round(width * ratio);
+                height = Math.round(height * ratio);
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+            canvas.toBlob(
+                (blob) => {
+                    const compressed = new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() });
+                    resolve(compressed);
+                },
+                'image/jpeg',
+                quality
+            );
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+        img.src = url;
+    });
 }
 
-function updateProductPreview(urls = []) {
+function updateProductPreview(savedUrls = []) {
     if (!prodImagePreview) return;
-    prodImagePreview.innerHTML = urls.map(url => `<img src="${url}" alt="Preview da imagem">`).join('');
+
+    // Imagens já salvas (URLs) com botão X
+    const savedHtml = savedUrls.map((url, i) => `
+        <div class="img-preview-wrap">
+            <img src="${url}" alt="Imagem do produto">
+            <button type="button" class="img-remove-btn" data-type="saved" data-index="${i}" title="Remover imagem">×</button>
+        </div>
+    `).join('');
+
+    // Novas imagens selecionadas (File objects) com botão X
+    const newHtml = selectedImageFiles.map((file, i) => `
+        <div class="img-preview-wrap">
+            <img src="${URL.createObjectURL(file)}" alt="Nova imagem">
+            <button type="button" class="img-remove-btn" data-type="new" data-index="${i}" title="Remover imagem">×</button>
+        </div>
+    `).join('');
+
+    prodImagePreview.innerHTML = savedHtml + newHtml;
+
+    // Eventos dos botões X
+    prodImagePreview.querySelectorAll('.img-remove-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const idx = parseInt(btn.dataset.index, 10);
+            if (btn.dataset.type === 'saved') {
+                editingProductImages.splice(idx, 1);
+            } else {
+                selectedImageFiles.splice(idx, 1);
+            }
+            updateProductPreview(editingProductImages);
+        });
+    });
 }
 
 if (prodImagesInput) {
-    prodImagesInput.addEventListener('change', () => {
+    prodImagesInput.addEventListener('change', async () => {
         const files = prodImagesInput.files;
-        if (!files || files.length === 0) {
-            updateProductPreview([]);
-            return;
-        }
-        const previewUrls = Array.from(files).map(file => URL.createObjectURL(file));
-        updateProductPreview(previewUrls);
+        if (!files || files.length === 0) return;
+
+        // Comprime cada imagem antes de adicionar à lista
+        const compressed = await Promise.all(Array.from(files).map(f => compressImage(f)));
+        selectedImageFiles.push(...compressed);
+
+        // Limpa o input para permitir re-selecionar o mesmo arquivo
+        prodImagesInput.value = '';
+        updateProductPreview(editingProductImages);
     });
 }
 
@@ -485,6 +543,7 @@ addProductBtn.addEventListener('click', () => {
     if (prodImagesInput) prodImagesInput.value = '';
     document.getElementById('prod-description').value = '';
     editingProductImages = [];
+    selectedImageFiles = [];
     updateProductPreview([]);
     document.getElementById('edit-product-id').value = '';
     productEditorModal.classList.add('active');
@@ -507,6 +566,7 @@ window.editProduct = function(id) {
     document.getElementById('prod-badge-text').value = product.badgeText || '';
     if (prodImagesInput) prodImagesInput.value = '';
     editingProductImages = Array.isArray(product.imageUrls) ? [...product.imageUrls] : (product.imageUrl ? [product.imageUrl] : []);
+    selectedImageFiles = [];
     updateProductPreview(editingProductImages);
     
     productEditorModal.classList.add('active');
@@ -535,7 +595,7 @@ productForm.addEventListener('submit', async (e) => {
     const categoryLabel = categories.find(c => c.id === categoryId)?.label || 'Outros';
     const price = parseFloat(document.getElementById('prod-price').value);
     const imageUrlField = document.getElementById('prod-image').value.trim();
-    const files = prodImagesInput ? prodImagesInput.files : null;
+    const files = selectedImageFiles.length > 0 ? selectedImageFiles : null;
 
     try {
         // Monta a lista de imagens: mantém as existentes (em edição) e adiciona
@@ -579,6 +639,7 @@ productForm.addEventListener('submit', async (e) => {
 
         if (prodImagesInput) prodImagesInput.value = '';
         editingProductImages = [];
+        selectedImageFiles = [];
         updateProductPreview([]);
         productEditorModal.classList.remove('active');
         showToast('Produto salvo com sucesso!');

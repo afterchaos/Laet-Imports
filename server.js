@@ -737,6 +737,15 @@ app.get('/product', (req, res) => {
 app.use((err, req, res, next) => {
   console.error('[ERROR]', err);
   if (res.headersSent) return next(err);
+
+  // Erro de arquivo muito grande (multer)
+  if (err && err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(413).json({
+      error: 'Arquivo muito grande',
+      details: 'O tamanho máximo por imagem é 10 MB. Reduza o tamanho da imagem antes de enviar.',
+    });
+  }
+
   const status = err && err.status ? err.status : 500;
   res.status(status).json({
     error: 'Internal error',
