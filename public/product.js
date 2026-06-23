@@ -30,7 +30,14 @@ function getProductFromStorage(productId) {
     }
 }
 
-function getContact() {
+async function getContact() {
+    try {
+        const res = await apiGet('/api/contact');
+        if (res && res.contact) {
+            try { localStorage.setItem('laet-contact', JSON.stringify(res.contact)); } catch {}
+            return res.contact;
+        }
+    } catch {}
     try {
         return JSON.parse(localStorage.getItem('laet-contact')) || { whatsapp: '', instagram: '' };
     } catch {
@@ -85,7 +92,7 @@ function buildDescription(product) {
     return `Conheça o ${product.name}, um produto ${product.categoryLabel.toLowerCase()} com design moderno e desempenho confiável. Ideal para quem busca qualidade, preço competitivo e entrega rápida.`;
 }
 
-function renderProductDetail(product) {
+async function renderProductDetail(product) {
     document.title = `${product.name} | LAET IMPORTS`;
     document.getElementById('detail-category').textContent = product.categoryLabel;
     document.getElementById('detail-name').textContent = product.name;
@@ -222,7 +229,7 @@ function renderProductDetail(product) {
     `).join('');
 
     // Set contact buttons
-    const contact = getContact();
+    const contact = await getContact();
     const waBtn = document.getElementById('detail-whatsapp-btn');
     const igBtn = document.getElementById('detail-instagram-btn');
 
@@ -270,11 +277,11 @@ async function loadProduct() {
     try {
         const res = await apiGet(`/api/products/${productId}`);
         const product = res.product;
-        if (product && !Number.isNaN(productId)) return renderProductDetail(product);
+        if (product && !Number.isNaN(productId)) return await renderProductDetail(product);
     } catch (e) {
         // fallback
         const product = getProductFromStorage(productId);
-        if (product && !Number.isNaN(productId)) return renderProductDetail(product);
+        if (product && !Number.isNaN(productId)) return await renderProductDetail(product);
     }
     renderNotFound();
 }

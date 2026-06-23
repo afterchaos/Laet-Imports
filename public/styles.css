@@ -2329,3 +2329,57 @@ body::after {
     0% { opacity: 1; }
     100% { opacity: 0; }
 }
+
+/* ========================================
+   Mobile: desabilita animações pesadas
+   ======================================== */
+@media (max-width: 768px) {
+    /* Para animações de fundo que causam jank em celulares fracos */
+    body::before,
+    body::after {
+        animation: none;
+        will-change: auto;
+        filter: none;
+    }
+
+    /* Glows flutuantes removidos no mobile */
+    .wave-glow-1,
+    .wave-glow-2,
+    .wave-glow-3 {
+        animation: none;
+        filter: blur(20px); /* blur menor = mais leve */
+        opacity: 0.12;
+    }
+
+    /* SVG de ondas simplificado */
+    .waves-svg {
+        filter: none;
+        opacity: 0.10;
+    }
+
+    /* Transições mais simples em todo o site */
+    * {
+        transition-duration: 0.15s !important;
+    }
+
+    /* Remove backdrop-filter pesado do header em mobile */
+    .site-header {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        background: var(--color-surface-1, #0d1b2e);
+    }
+
+    /* Storm flash mais leve */
+    .storm-flash {
+        display: none;
+    }
+}
+
+/* Touch: remove hover animations que flickam no toque */
+@media (hover: none) and (pointer: coarse) {
+    .btn:hover,
+    .product-card:hover,
+    .nav-link:hover {
+        transform: none !important;
+    }
+}
