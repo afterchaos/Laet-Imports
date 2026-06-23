@@ -92,7 +92,14 @@ function renderProductDetail(product) {
     document.getElementById('detail-price').textContent = formatCurrency(product.price);
     document.getElementById('detail-old-price').textContent = product.oldPrice ? formatCurrency(product.oldPrice) : '';
     document.getElementById('detail-installment').textContent = product.installment || '';
-    document.getElementById('detail-description').textContent = buildDescription(product);
+    const descEl = document.getElementById('detail-description');
+    const descText = buildDescription(product);
+    descEl.innerHTML = descText
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\n/g, '<br>')
+        .replace(/ {2,}/g, m => '&nbsp;'.repeat(m.length));
 
     const detailImage = document.getElementById('detail-image');
     const imageUrls = product.imageUrls?.length ? product.imageUrls : (product.imageUrl ? [product.imageUrl] : []);

@@ -2266,6 +2266,28 @@ body::after {
         top: 12px;
         right: 12px;
     }
+
+    .product-detail-actions {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .product-detail-actions .btn {
+        flex: none;
+        width: 100%;
+        min-width: unset;
+    }
+
+    .btn-contact {
+        padding: 14px 16px !important;
+        justify-content: flex-start;
+    }
+
+    .btn-contact-label {
+        max-width: none;
+        white-space: normal;
+        word-break: break-all;
+    }
 }
 
 @media (min-width: 768px) {
